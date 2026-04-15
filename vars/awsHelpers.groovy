@@ -1,6 +1,6 @@
 def call(Map config = [:]) {
     // Centralized configuration - Move these to a 'consts' file or keep here
-    def awsAccountId = "123456789012" // Replace with your actual ID
+    def awsAccountId = "510931056289" // Replace with your actual ID
     def region       = "ap-southeast-2"
     def repoName     = "devops_repo/app"
     def ecrUrl       = "${awsAccountId}.dkr.ecr.${region}.amazonaws.com"
