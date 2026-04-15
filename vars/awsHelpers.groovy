@@ -11,9 +11,7 @@ def call(Map config = [:]) {
 
     // Tag and Push
     sh """
-        docker tag studentapp:${config.appVersion} ${fullImageUri}:${config.appVersion}
-        docker tag studentapp:${config.appVersion} ${fullImageUri}:latest
-        docker push ${fullImageUri}:${config.appVersion}
-        docker push ${fullImageUri}:latest
+       docker tag studentapp:${config.appVersion} ${fullImageUri}:${config.appVersion}
+       docker push ${fullImageUri}:${config.appVersion}
     """
 }
