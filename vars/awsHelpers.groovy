@@ -1,3 +1,4 @@
+
 // vars/orchestrateDeployment.groovy
 
 // 1. Centralized Configuration Map (Internal Private Helper)
@@ -31,16 +32,16 @@ def call(Map config = [:]) {
         // Log helm into ECR OCI registry
         sh "aws ecr get-login-password --region ${envs.REGION} | helm registry login --username AWS --password-stdin ${envs.ECR_URL}"
         
-        // 1. Package using your exact 'helm/' directory
+        // Package the chart using your 'helm/' directory
         sh "helm package helm/ --version 0.1.0 --app-version ${config.appVersion}"
         
-        // 2. Push the packaged chart to ECR
+        // Push the packaged chart to ECR
         sh "helm push ${envs.CHART_NAME}-0.1.0.tgz oci://${envs.ECR_URL}/"
         
-        // 3. Pull helm chart down to verify and clear directory workspace
+        // Pull helm chart down to verify the OCI artifact download
         sh "helm pull oci://${envs.ECR_URL}/${envs.CHART_NAME} --version 0.1.0 --untar"
         
-        // 4. Deploy directly to the remote self-managed cluster passing values dynamically
+        // Deploy directly to the remote self-managed cluster via the injected Kubeconfig
         sh """
             helm upgrade --install ecommerce-release ./${envs.CHART_NAME} \
               --set image.repository=${envs.ECR_URL}/${envs.IMAGE_REPO} \
@@ -48,6 +49,6 @@ def call(Map config = [:]) {
               --kubeconfig ${config.kubeconfigPath}
         """
     } else {
-        error "Invalid action '${config.action}' passed to orchestrateDeployment step."
+        error "Invalid action '${config.action}' passed to orchestrateDeployment step. Please pass action: 'pushImage' or action: 'deployHelm'."
     }
 }
