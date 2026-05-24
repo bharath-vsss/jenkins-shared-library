@@ -1,40 +1,53 @@
+// vars/orchestrateDeployment.groovy
+
+// 1. Centralized Configuration Map (Internal Private Helper)
+def getConstants() {
+    return [
+        AWS_ACCOUNT_ID : "510931056289",
+        REGION         : "ap-southeast-2",
+        IMAGE_REPO     : "devops_repo/app",
+        CHART_NAME     : "ecommerce-app",
+        ECR_URL        : "510931056289.dkr.ecr.ap-southeast-2.amazonaws.com"
+    ]
+}
+
+// 2. Main Entry Point
 def call(Map config = [:]) {
-    def awsAccountId = "510931056289" 
-    def region       = "ap-southeast-2"
-    def repoName     = "devops_repo/app"
-    def ecrUrl       = "${awsAccountId}.dkr.ecr.${region}.amazonaws.com"
-    def fullImageUri = "${ecrUrl}/${repoName}"
-    def appVersion   = config.appVersion
+    def envs = getConstants()
+    def fullImageUri = "${envs.ECR_URL}/${envs.IMAGE_REPO}"
 
-    // 1. Authenticate both Docker and Helm to your ECR OCI Registry
-    sh "aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${ecrUrl}"
-    sh "aws ecr get-login-password --region ${region} | helm registry login --username AWS --password-stdin ${ecrUrl}"
-
-    // 2. Tag and Push the Docker Image
-    sh """
-       docker tag studentapp:${appVersion} ${fullImageUri}:${appVersion}
-       docker push ${fullImageUri}:${appVersion}
-    """
-
-    // 3. Package and Push Helm Chart as an OCI artifact to ECR
-    // Modifies the values.yaml to explicitly use the new image URI and version tag dynamically
-    sh """
-        sed -i 's|repository: .*|repository: ${fullImageUri}|g' helm-chart/values.yaml
-        sed -i 's|tag: .*|tag: "${appVersion}"|g' helm-chart/values.yaml
-        helm package helm-chart --version ${appVersion} --app-version ${appVersion}
-        helm push student-app-${appVersion}.tgz oci://${ecrUrl}/devops_repo
-    """
-
-    // 4. Securely pull chart and Deploy to the Self-Managed Cluster
-    // Uses the KUBECONFIG file injected safely from your Jenkins pipeline scope
-    sh """
-        mkdir -p extracted-chart
-        helm pull oci://${ecrUrl}/devops_repo/student-app --version ${appVersion} --untar --untardir ./extracted-chart
+    if (config.action == 'pushImage') {
+        echo "Starting Docker push sequence for version: ${config.appVersion}"
         
-        helm upgrade --install ecommerce-student-app ./extracted-chart/student-app \
-            --kubeconfig ${config.kubeconfigFile} \
-            --namespace default
-            
-        kubectl rollout status deployment/ecommerce-student-app --kubeconfig ${config.kubeconfigFile} --namespace default
-    """
+        sh "aws ecr get-login-password --region ${envs.REGION} | docker login --username AWS --password-stdin ${envs.ECR_URL}"
+        sh """
+            docker tag studentapp:${config.appVersion} ${fullImageUri}:${config.appVersion}
+            docker push ${fullImageUri}:${config.appVersion}
+        """
+        
+    } else if (config.action == 'deployHelm') {
+        echo "Starting Helm package and remote deploy sequence for version: ${config.appVersion}"
+        
+        // Log helm into ECR OCI registry
+        sh "aws ecr get-login-password --region ${envs.REGION} | helm registry login --username AWS --password-stdin ${envs.ECR_URL}"
+        
+        // 1. Package using your exact 'helm/' directory
+        sh "helm package helm/ --version 0.1.0 --app-version ${config.appVersion}"
+        
+        // 2. Push the packaged chart to ECR
+        sh "helm push ${envs.CHART_NAME}-0.1.0.tgz oci://${envs.ECR_URL}/"
+        
+        // 3. Pull helm chart down to verify and clear directory workspace
+        sh "helm pull oci://${envs.ECR_URL}/${envs.CHART_NAME} --version 0.1.0 --untar"
+        
+        // 4. Deploy directly to the remote self-managed cluster passing values dynamically
+        sh """
+            helm upgrade --install ecommerce-release ./${envs.CHART_NAME} \
+              --set image.repository=${envs.ECR_URL}/${envs.IMAGE_REPO} \
+              --set image.tag=${config.appVersion} \
+              --kubeconfig ${config.kubeconfigPath}
+        """
+    } else {
+        error "Invalid action '${config.action}' passed to orchestrateDeployment step."
+    }
 }
