@@ -1,4 +1,3 @@
-
 // vars/orchestrateDeployment.groovy
 
 // 1. Centralized Configuration Map (Internal Private Helper)
@@ -7,7 +6,7 @@ def getConstants() {
         AWS_ACCOUNT_ID : "510931056289",
         REGION         : "ap-southeast-2",
         IMAGE_REPO     : "devops_repo/app",
-        CHART_NAME     : "ecommerce-app",
+        CHART_NAME     : "ecommerce",
         ECR_URL        : "510931056289.dkr.ecr.ap-southeast-2.amazonaws.com"
     ]
 }
@@ -36,14 +35,14 @@ def call(Map config = [:]) {
         sh "helm package ecommerce/ --version 0.1.0 --app-version ${config.appVersion}"
         
         // Push the packaged chart to ECR
-        sh "helm push ${envs.CHART_NAME}-0.1.0.tgz oci://${envs.ECR_URL}/"
+        sh "helm push ecommerce-0.1.0.tgz oci://${envs.ECR_URL}/"
         
         // Pull helm chart down to verify the OCI artifact download
-        sh "helm pull oci://${envs.ECR_URL}/${envs.CHART_NAME} --version 0.1.0 --untar"
+        sh "helm pull oci://${envs.ECR_URL}/ecommerce --version 0.1.0 --untar"
         
         // Deploy directly to the remote self-managed cluster via the injected Kubeconfig
         sh """
-            helm upgrade --install ecommerce-release ./${envs.CHART_NAME} \
+            helm upgrade --install ecommerce-release ./ecommerce \
               --set image.repository=${envs.ECR_URL}/${envs.IMAGE_REPO} \
               --set image.tag=${config.appVersion} \
               --kubeconfig ${config.kubeconfigPath}
