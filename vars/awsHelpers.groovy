@@ -1,4 +1,4 @@
-```groovy
+
 // vars/orchestrateDeployment.groovy
 
 def getConstants() {
@@ -74,4 +74,4 @@ def call(Map config = [:]) {
         """
     }
 }
-```
+
