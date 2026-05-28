@@ -3,11 +3,12 @@
 // 1. Centralized Configuration Map (Internal Private Helper)
 def getConstants() {
     return [
-        AWS_ACCOUNT_ID : "510931056289",
-        REGION         : "ap-southeast-2",
-        IMAGE_REPO     : "devops_repo/app",
-        CHART_NAME     : "ecommerce",
-        ECR_URL        : "510931056289.dkr.ecr.ap-southeast-2.amazonaws.com"
+        AWS_ACCOUNT_ID   : "510931056289",
+        REGION           : "ap-southeast-2",
+        IMAGE_REPO       : "devops_repo/app",
+        CHART_REPO       : "ecommerce-app", // 👈 Added dedicated Helm repository path
+        CHART_NAME       : "ecommerce",
+        ECR_URL          : "510931056289.dkr.ecr.ap-southeast-2.amazonaws.com"
     ]
 }
 
@@ -34,12 +35,12 @@ def call(Map config = [:]) {
         // Package the chart using your local directory
         sh "helm package ecommerce1/ --version 0.1.0 --app-version ${config.appVersion}"
         
-        // FIX: Route the chart push to your existing ECR repository namespace ('devops_repo')
-        sh "helm push ecommerce-app-0.1.0.tgz oci://${envs.ECR_URL}/devops_repo"
+        // UPDATE: Pushing directly to the new dedicated 'ecommerce-app' repository
+        sh "helm push ecommerce-app-0.1.0.tgz oci://${envs.ECR_URL}"
         
-        // FIX: Reference the correct OCI storage engine path during installation
+        // UPDATE: Pull and upgrade from the dedicated 'ecommerce-app' OCI repository path
         sh """
-            helm upgrade --install ecommerce-release oci://${envs.ECR_URL}/devops_repo/ecommerce-app \
+            helm upgrade --install ecommerce-release oci://${envs.ECR_URL}/${envs.CHART_REPO} \
               --version 0.1.0 \
               --set image.repository=${envs.ECR_URL}/${envs.IMAGE_REPO} \
               --set image.tag=${config.appVersion} \
