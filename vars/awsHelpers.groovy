@@ -40,8 +40,12 @@ def call(Map config = [:]) {
         // Package the chart using your local directory
         sh "helm package ecommerce/ --version 0.1.0 --app-version ${cleanAppVersion}"
         
-        // Target the specific ECR chart repository path for OCI push
-        sh "helm push ecommerce-0.1.0.tgz oci://${envs.ECR_URL}/${envs.CHART_REPO}"
+        // FIX: Dynamically find whatever .tgz file was generated in the workspace instead of guessing its name
+        def targetTgzFile = sh(script: "ls *.tgz", returnStdout: true).trim()
+        echo "Found packaged chart archive: ${targetTgzFile}"
+        
+        // Target the specific ECR chart repository path for OCI push using the dynamic variable
+        sh "helm push ${targetTgzFile} oci://${envs.ECR_URL}/${envs.CHART_REPO}"
         
         // Added single quotes around '${cleanAppVersion}' so Kubernetes parses the tag safely
         sh """
