@@ -31,18 +31,16 @@ def call(Map config = [:]) {
         // Log helm into ECR OCI registry
         sh "aws ecr get-login-password --region ${envs.REGION} | helm registry login --username AWS --password-stdin ${envs.ECR_URL}"
         
-        // Package the chart using your 'helm/' directory
+        // Package the chart using your local directory
         sh "helm package ecommerce/ --version 0.1.0 --app-version ${config.appVersion}"
         
         // Push the packaged chart to ECR
         sh "helm push ecommerce-0.1.0.tgz oci://${envs.ECR_URL}/${envs.IMAGE_REPO}"
         
-        // Pull helm chart down to verify the OCI artifact download
-        sh "helm pull oci://${envs.ECR_URL}/${envs.IMAGE_REPO} --version 0.1.0 --untar"
-        
-        // Deploy directly to the remote self-managed cluster via the injected Kubeconfig
+        // OPTIMIZATION: Deploy directly from your ECR OCI storage registry
         sh """
-            helm upgrade --install ecommerce-release ./ecommerce \
+            helm upgrade --install ecommerce-release oci://${envs.ECR_URL}/${envs.IMAGE_REPO}/ecommerce \
+              --version 0.1.0 \
               --set image.repository=${envs.ECR_URL}/${envs.IMAGE_REPO} \
               --set image.tag=${config.appVersion} \
               --kubeconfig ${config.kubeconfigPath}
