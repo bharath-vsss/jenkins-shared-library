@@ -37,12 +37,13 @@ def call(Map config = [:]) {
         // Push the packaged chart to ECR
         sh "helm push app-0.1.0.tgz oci://${envs.ECR_URL}/devops_repo"
         
-        // OPTIMIZATION: Deploy directly from your ECR OCI storage registry
+        // OPTIMIZATION: Deploy directly from your ECR OCI storage registry with imagePullSecrets configured
         sh """
             helm upgrade --install ecommerce-release oci://${envs.ECR_URL}/devops_repo/app \
               --version 0.1.0 \
               --set image.repository=${envs.ECR_URL}/${envs.IMAGE_REPO} \
               --set image.tag=${config.appVersion} \
+              --set imagePullSecrets[0].name=ecr-registry-secret \
               --kubeconfig ${config.kubeconfigPath}
         """
     } else {
