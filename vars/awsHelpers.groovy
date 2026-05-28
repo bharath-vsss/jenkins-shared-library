@@ -35,10 +35,10 @@ def call(Map config = [:]) {
         sh "helm package ecommerce/ --version 0.1.0 --app-version ${config.appVersion}"
         
         // Push the packaged chart to ECR
-        sh "helm push ecommerce-0.1.0.tgz oci://${envs.ECR_URL}/"
+        sh "helm push ecommerce-0.1.0.tgz oci://${envs.ECR_URL}/${envs.IMAGE_REPO}"
         
         // Pull helm chart down to verify the OCI artifact download
-        sh "helm pull oci://${envs.ECR_URL}/ecommerce --version 0.1.0 --untar"
+        sh "helm pull oci://${envs.ECR_URL}/${envs.IMAGE_REPO}/ecommerce --version 0.1.0 --untar"
         
         // Deploy directly to the remote self-managed cluster via the injected Kubeconfig
         sh """
