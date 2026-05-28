@@ -35,11 +35,11 @@ def call(Map config = [:]) {
         sh "helm package ecommerce/ --version 0.1.0 --app-version ${config.appVersion}"
         
         // Push the packaged chart to ECR
-        sh "helm push ecommerce-0.1.0.tgz oci://${envs.ECR_URL}/${envs.IMAGE_REPO}"
+        sh "helm push app-0.1.0.tgz oci://${envs.ECR_URL}/devops_repo"
         
         // OPTIMIZATION: Deploy directly from your ECR OCI storage registry
         sh """
-            helm upgrade --install ecommerce-release oci://${envs.ECR_URL}/${envs.IMAGE_REPO}/ecommerce \
+            helm upgrade --install ecommerce-release oci://${envs.ECR_URL}/devops_repo/app \
               --version 0.1.0 \
               --set image.repository=${envs.ECR_URL}/${envs.IMAGE_REPO} \
               --set image.tag=${config.appVersion} \
