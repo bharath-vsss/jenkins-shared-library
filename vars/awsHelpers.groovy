@@ -6,7 +6,7 @@ def getConstants() {
         AWS_ACCOUNT_ID   : "510931056289",
         REGION           : "ap-southeast-2",
         IMAGE_REPO       : "devops_repo/app",
-        CHART_REPO       : "ecommerce-app", // Dedicated Helm repository path in ECR
+        CHART_REPO       : "ecommerce-app", // Matches the actual OCI target collection name
         CHART_NAME       : "ecommerce",
         ECR_URL          : "510931056289.dkr.ecr.ap-southeast-2.amazonaws.com"
     ]
@@ -40,14 +40,14 @@ def call(Map config = [:]) {
         // Package the chart using your local directory
         sh "helm package ecommerce/ --version 0.1.0 --app-version ${cleanAppVersion}"
         
-        // FIX: Dynamically find whatever .tgz file was generated in the workspace instead of guessing its name
+        // Dynamically find whatever .tgz file was generated in the workspace
         def targetTgzFile = sh(script: "ls *.tgz", returnStdout: true).trim()
         echo "Found packaged chart archive: ${targetTgzFile}"
         
-        // Target the specific ECR chart repository path for OCI push using the dynamic variable
-        sh "helm push ${targetTgzFile} oci://${envs.ECR_URL}/${envs.CHART_REPO}"
+        // FIX: Push to the base ECR root. Helm appends '/app' automatically to target 'ecommerce-app'
+        sh "helm push ${targetTgzFile} oci://${envs.ECR_URL}"
         
-        // Added single quotes around '${cleanAppVersion}' so Kubernetes parses the tag safely
+        // Pull and upgrade using the full explicit composite path
         sh """
             helm upgrade --install ecommerce-release oci://${envs.ECR_URL}/${envs.CHART_REPO} \
               --version 0.1.0 \
