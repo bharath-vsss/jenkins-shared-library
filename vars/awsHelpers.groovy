@@ -33,7 +33,7 @@ def call(Map config = [:]) {
         sh "aws ecr get-login-password --region ${envs.REGION} | helm registry login --username AWS --password-stdin ${envs.ECR_URL}"
         
         // Package the chart using your local directory
-        sh "helm package ecommerce1/ --version 0.1.0 --app-version ${config.appVersion}"
+        sh "helm package ecommerce/ --version 0.1.0 --app-version ${config.appVersion}"
         
         // UPDATE: Pushing directly to the new dedicated 'ecommerce-app' repository
         sh "helm push ecommerce-app-0.1.0.tgz oci://${envs.ECR_URL}"
