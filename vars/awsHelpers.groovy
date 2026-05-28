@@ -47,10 +47,10 @@ def call(Map config = [:]) {
         """
 
         // Push chart to SAME repo namespace
-        sh """
-            helm push ecommerce-app-0.1.0.tgz \
-            oci://${envs.ECR_URL}/devops_repo
-        """
+       sh """
+              helm push ecommerce-app-0.1.0.tgz \
+              oci://${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/ecommerce-app
+          """
 
         // Pull/install from SAME repo namespace
         sh """
