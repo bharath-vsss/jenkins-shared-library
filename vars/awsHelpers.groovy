@@ -32,7 +32,7 @@ def call(Map config = [:]) {
         
         sh "aws ecr get-login-password --region ${envs.REGION} | helm registry login --username AWS --password-stdin ${envs.ECR_URL}"
         
-        sh "helm package ecommerce/ --version 0.1.0 --app-version ${cleanAppVersion}"
+        sh "helm package ecommerce1/ --version 0.1.0 --app-version ${cleanAppVersion}"
         
         def targetTgzFile = sh(script: "ls *.tgz", returnStdout: true).trim()
         echo "Found packaged chart archive: ${targetTgzFile}"
