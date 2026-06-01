@@ -37,7 +37,8 @@ def call(Map config = [:]) {
         def targetTgzFile = sh(script: "ls *.tgz", returnStdout: true).trim()
         echo "Found packaged chart archive: ${targetTgzFile}"
         
-        // FIX: Explicitly points the target location to your named ECR repository 'ecommerce-app'
+        // Push the chart to the root OCI registry URL. 
+        // Helm automatically appends the chart name to the URL, pushing it to .../ecommerce-app
         sh "helm push ${targetTgzFile} oci://${envs.ECR_URL}"
         
         sh """
